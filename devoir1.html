@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            width: 100%;
+        }
+
+        rect:hover {
+            fill: chocolate;
+        }
+
+        #container>* {
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/3.1.2/svg.min.js"
+        integrity="sha512-I+rKw3hArzZIHzrkdELbKqrXfkSvw/h0lW/GgB8FThaBVz2e5ZUlSW8kY8v3q6wq37eybIwyufkEZxe4qSlGcg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+    <div id="container">
+        <h1>Ventes</h1>
+        <div id="graphContainer" style="border:1px solid red; width:800px; height:800px;"></div>
+    </div>
+</body>
+<script>
+    const svgns = "http://www.w3.org/2000/svg";
+    let viewPortMaxUnitX = 1000;
+    let viewPortMaxUnitY = 1000;
+    const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+    let sales = [6500, 5550, 4000, 4500, 2500, 1500, 500, 1000, 1500, 2000, 4000, 3500];
+    let viewport = null;
+    function init_UI() {
+        insertViewPort("graphContainer");
+        drawBars();
+        //Voir la réponse: https://stackoverflow.com/questions/3642035/jquerys-append-not-working-with-svg-element/3642265#13654655
+        $("#graphContainer").html($("#graphContainer").html()); //Rafraîchir le conteneur pour dessiner sur l'écran
+    }
+
+    function insertViewPort(containerId) {
+        viewport = $(document.createElementNS(svgns, "svg")).attr({
+            id: "viewport",
+            viewBox: `0 0 ${viewPortMaxUnitX} ${viewPortMaxUnitY}`
+        });
+        $("#" + containerId).append(viewport);
+    }
+    function line(x1, y1, x2, y2, stroke = "black", strokeWidth = 1) {
+        return $line = $('<line>', {
+            x1: x1,
+            y1: toScreen(y1),
+            x2: x2,
+            y2: toScreen(y2),
+            stroke: stroke,
+            'stroke-width': strokeWidth
+        });
+    }
+
+    function rect(x, y, width, height, fill = "white", stroke = "black", strokeWidth = 1) {
+        return $(document.createElementNS(svgns, "rect")).attr({
+            "x": x,
+            "y": toScreen(y) - height,
+            "width": width,
+            "height": height,
+            "fill": fill,
+            "stroke": stroke,
+            "stroke-width": strokeWidth
+        });
+    }
+
+    function text(x, y, content, angle = 0, size = "1", family = "serif") {
+        let text = $(document.createElementNS(svgns, "text")).attr({
+            "x": x,
+            "y": toScreen(y),
+            "transform": `rotate(${angle},${x},${toScreen(y)})`,
+            "font-size": `${size}em`,
+            "font-family": family
+        });
+        text.html(content);
+        return text;
+    }
+
+    function toScreen(y) {
+        return viewPortMaxUnitY - y;
+    }
+
+    // // Drawing the bars
+    function drawBars() {
+        const color = {
+            r: 255,
+            g: 70,
+            b: 10
+        };
+        const forceMultiplier = 0.8;
+        const graphMarginX = 150;
+        const graphMarginY = 165;
+        const originX = graphMarginX;
+        const originY = graphMarginY;
+        const barMargin = 5;
+        const barWidth = (viewPortMaxUnitX - 2 * graphMarginX) / sales.length - 2 * barMargin;
+        const yAxisScaling = 9.2;
+        const maxY = 8000;
+        const label = {
+            padding: 40,
+            rotationAngle: 45,
+            fontSize: 2
+        }
+        let barPosition = originX + barMargin;
+
+        // Dessiner les lignes et leurs labels sur l'axe des Y
+
+        for (let y = 0; y < maxY; y += 1000) {
+            viewport.append(line(originX - yAxisScaling, originY + y / yAxisScaling, viewPortMaxUnitX - graphMarginX + yAxisScaling, originY + y / yAxisScaling, "gray"));
+            let label = text(originX - 20, originY + y / yAxisScaling - yAxisScaling, `$ ${y}`, 0, 2).attr("text-anchor", "end");
+            viewport.append(label);
+        }
+
+        // Dessiner les barres et leurs labels
+        for (let b = 0; b < sales.length; b++) {
+            let barColor = `rgb(${color.r - (sales[b] * forceMultiplier) / color.g},${(sales[b] * forceMultiplier) / color.b},0)`;
+            viewport.append(rect(barPosition, originY, barWidth, sales[b] / yAxisScaling, barColor, "black"));
+            viewport.append(text(barPosition + barWidth / 2, originY - label.padding, MONTHS[b], label.rotationAngle, label.fontSize));
+            barPosition += barWidth + 2 * barMargin;
+        }
+    }
+</script>
+<script defer> init_UI()</script>
+
+</html>
